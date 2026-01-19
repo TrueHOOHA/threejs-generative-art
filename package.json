@@ -1,0 +1,20 @@
+{
+  "name": "threejs-generative-art",
+  "version": "1.0.0",
+  "description": "Interactive 3D generative art with Three.js - Lygia Clark inspired grid system",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "serve": "vite preview --port 3000"
+  },
+  "dependencies": {
+    "three": "^0.160.0",
+    "gsap": "^3.12.5"
+  },
+  "devDependencies": {
+    "vite": "^5.0.11",
+    "sass": "^1.69.5"
+  }
+}
