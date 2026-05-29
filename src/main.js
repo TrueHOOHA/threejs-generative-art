@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import gsap from 'gsap';
-import { GridScene } from './scenes/GridScene.js';
+import { ThreeBodyScene } from './scenes/ThreeBodyScene.js';
 import { createGUI } from './utils/gui.js';
 import { createStats } from './utils/stats.js';
 
@@ -13,7 +13,7 @@ class GenerativeArtApp {
         this.camera = null;
         this.renderer = null;
         this.controls = null;
-        this.gridScene = null;
+        this.threeBodyScene = null;
         this.stats = null;
         this.clock = new THREE.Clock();
         this.frameCount = 0;
@@ -27,7 +27,7 @@ class GenerativeArtApp {
         this.setupCamera();
         this.setupRenderer();
         this.setupControls();
-        this.setupGridScene();
+        this.setupThreeBodyScene();
         this.setupGUI();
         this.setupStats();
         this.setupEventListeners();
@@ -36,8 +36,7 @@ class GenerativeArtApp {
 
     setupScene() {
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x0a0a0a);
-        this.scene.fog = new THREE.Fog(0x0a0a0a, 10, 50);
+        // ThreeBodyScene 会设置渐变背景
     }
 
     setupCamera() {
@@ -58,7 +57,7 @@ class GenerativeArtApp {
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.enabled = false;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -78,35 +77,13 @@ class GenerativeArtApp {
         this.controls.target.set(0, 0, 0);
     }
 
-    setupGridScene() {
-        this.gridScene = new GridScene(this.scene, this.camera, this.renderer);
-        
-        // Add ambient light
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
-        this.scene.add(ambientLight);
-
-        // Add directional light
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        directionalLight.position.set(10, 20, 10);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
-        directionalLight.shadow.camera.near = 0.5;
-        directionalLight.shadow.camera.far = 50;
-        this.scene.add(directionalLight);
-
-        // Add point lights for artistic effect
-        const pointLight1 = new THREE.PointLight(0x667eea, 2, 30);
-        pointLight1.position.set(-10, 5, -10);
-        this.scene.add(pointLight1);
-
-        const pointLight2 = new THREE.PointLight(0x764ba2, 2, 30);
-        pointLight2.position.set(10, 5, 10);
-        this.scene.add(pointLight2);
+    setupThreeBodyScene() {
+        this.threeBodyScene = new ThreeBodyScene(this.scene, this.camera, this.renderer);
+        // ThreeBodyScene 内部管理所有光照，无需额外添加
     }
 
     setupGUI() {
-        this.gui = createGUI(this.gridScene);
+        this.gui = createGUI(this.threeBodyScene);
     }
 
     setupStats() {
@@ -122,7 +99,7 @@ class GenerativeArtApp {
             switch(e.key) {
                 case 'r':
                 case 'R':
-                    this.gridScene.regenerate();
+                    this.threeBodyScene.regenerate();
                     break;
                 case 's':
                 case 'S':
@@ -176,16 +153,20 @@ class GenerativeArtApp {
         // Update controls
         this.controls.update();
 
-        // Update grid scene
-        if (this.gridScene) {
-            this.gridScene.update(delta, elapsed);
+        // Update three body scene
+        if (this.threeBodyScene) {
+            this.threeBodyScene.update(delta, elapsed);
         }
 
         // Update stats
         this.updateStats();
 
-        // Render
-        this.renderer.render(this.scene, this.camera);
+        // Render - 使用 Bloom composer 或直接渲染
+        if (this.threeBodyScene && this.threeBodyScene.composer) {
+            this.threeBodyScene.composer.render();
+        } else {
+            this.renderer.render(this.scene, this.camera);
+        }
     }
 
     updateStats() {
@@ -204,6 +185,10 @@ class GenerativeArtApp {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+        // 同步更新 Bloom composer 尺寸
+        if (this.threeBodyScene && this.threeBodyScene.composer) {
+            this.threeBodyScene.composer.setSize(window.innerWidth, window.innerHeight);
+        }
     }
 
     exportScreenshot() {
@@ -214,8 +199,8 @@ class GenerativeArtApp {
     }
 
     toggleAnimation() {
-        if (this.gridScene) {
-            this.gridScene.toggleAnimation();
+        if (this.threeBodyScene) {
+            this.threeBodyScene.toggleAnimation();
         }
     }
 }
